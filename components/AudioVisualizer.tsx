@@ -79,9 +79,7 @@ export default function AudioVisualizer() {
     const H = canvas.height;
 
     rafIdRef.current = requestAnimationFrame(draw);
-
-    // ✅ Ensure analyser and dataArray are both non-null
-    analyser.getByteFrequencyData(dataArray);
+    analyser.getByteFrequencyData(dataArray as Uint8Array<ArrayBuffer>);
 
     // Fade trail
     ctx2d.fillStyle = "rgba(0,0,0,0.15)";
