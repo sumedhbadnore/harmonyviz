@@ -12,9 +12,24 @@ type Track = {
 };
 
 const PRESET_TRACKS: Track[] = [
-  { id: "t1", title: "Cascade Breathe", artist: "NverAvetyanMusic", url: "/audio/cascade-breathe.mp3" },
-  { id: "t2", title: "Just Relax", artist: "MusicForVideo", url: "/audio/just-relax.mp3" },
-  { id: "t3", title: "Running Night", artist: "AlexMakeMusic", url: "/audio/synth-pulse.mp3" },
+  {
+    id: "t1",
+    title: "Cascade Breathe",
+    artist: "NverAvetyanMusic",
+    url: "https://cdn.pixabay.com/audio/2025/09/30/audio_a59a02b883.mp3",
+  },
+  {
+    id: "t2",
+    title: "Just Relax",
+    artist: "MusicForVideo",
+    url: "https://cdn.pixabay.com/audio/2021/11/23/audio_64b2dd1bce.mp3",
+  },
+  {
+    id: "t3",
+    title: "Running Night",
+    artist: "AlexMakeMusic",
+    url: "https://cdn.pixabay.com/audio/2025/08/29/audio_fba9035557.mp3",
+  },
 ];
 
 export default function AudioVisualizer() {
@@ -119,8 +134,12 @@ export default function AudioVisualizer() {
   const teardownContext = useCallback(async () => {
     try {
       if (audioCtxRef.current) {
-        try { await audioCtxRef.current.suspend(); } catch {}
-        try { await audioCtxRef.current.close(); } catch {}
+        try {
+          await audioCtxRef.current.suspend();
+        } catch {}
+        try {
+          await audioCtxRef.current.close();
+        } catch {}
       }
     } finally {
       audioCtxRef.current = null;
@@ -135,13 +154,21 @@ export default function AudioVisualizer() {
 
       const el = audioElRef.current;
       if (el) {
-        try { el.onended = null; } catch {}
-        try { el.pause(); } catch {}
-        try { el.currentTime = 0; } catch {}
+        try {
+          el.onended = null;
+        } catch {}
+        try {
+          el.pause();
+        } catch {}
+        try {
+          el.currentTime = 0;
+        } catch {}
       }
 
       if (mediaElSourceRef.current) {
-        try { mediaElSourceRef.current.disconnect(); } catch {}
+        try {
+          mediaElSourceRef.current.disconnect();
+        } catch {}
         mediaElSourceRef.current = null;
       }
 
@@ -313,7 +340,10 @@ export default function AudioVisualizer() {
     <div className="relative w-full max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <span className={`inline-block h-2 w-2 rounded-full ${statusDot}`} aria-hidden />
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${statusDot}`}
+            aria-hidden
+          />
           <h2 className="text-lg font-semibold">
             {mode === "mic" && isMicOn && "Live Microphone Visualizer"}
             {mode === "file" && isFilePlaying && "Preset Track Visualizer"}
@@ -352,7 +382,8 @@ export default function AudioVisualizer() {
       {/* Preset playlist */}
       <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {PRESET_TRACKS.map((t) => {
-          const active = currentTrackId === t.id && isFilePlaying && mode === "file";
+          const active =
+            currentTrackId === t.id && isFilePlaying && mode === "file";
           return (
             <div
               key={t.id}
@@ -362,7 +393,11 @@ export default function AudioVisualizer() {
             >
               <div className="min-w-0">
                 <div className="truncate font-medium">{t.title}</div>
-                {t.artist && <div className="truncate text-xs text-white/60">{t.artist}</div>}
+                {t.artist && (
+                  <div className="truncate text-xs text-white/60">
+                    {t.artist}
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 {!active ? (
