@@ -22,8 +22,8 @@ export default function AudioVisualizer() {
 
   // UI state
   const [mode, setMode] = useState<Mode>("idle");
-  const [isMicOn, setIsMicOn] = useState<boolean>(false);
-  const [isFilePlaying, setIsFilePlaying] = useState<boolean>(false);
+  const [isMicOn, setIsMicOn] = useState(false);
+  const [isFilePlaying, setIsFilePlaying] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +79,8 @@ export default function AudioVisualizer() {
     const H = canvas.height;
 
     rafIdRef.current = requestAnimationFrame(draw);
+
+    // ✅ Ensure analyser and dataArray are both non-null
     analyser.getByteFrequencyData(dataArray);
 
     // Fade trail
@@ -118,7 +120,6 @@ export default function AudioVisualizer() {
 
   // ----- MIC CONTROL -----
   const startMic = useCallback(async () => {
-    // If a file is playing, stop it first.
     await stopFilePlayback();
 
     try {
@@ -139,10 +140,11 @@ export default function AudioVisualizer() {
 
       const source = audioCtx.createMediaStreamSource(stream);
       micSourceRef.current = source;
-
       source.connect(analyser);
 
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      // ✅ Create a typed ArrayBuffer to avoid TS "ArrayBufferLike" error
+      const buffer = new ArrayBuffer(analyser.frequencyBinCount);
+      const dataArray = new Uint8Array(buffer);
       dataArrayRef.current = dataArray;
 
       fitCanvas();
@@ -165,11 +167,9 @@ export default function AudioVisualizer() {
     try {
       stopRenderLoop();
 
-      // Disconnect nodes
       micSourceRef.current?.disconnect();
       micSourceRef.current = null;
 
-      // Stop all tracks
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
       micStreamRef.current = null;
 
@@ -178,15 +178,12 @@ export default function AudioVisualizer() {
       clearCanvas();
       setIsMicOn(false);
       setMode((m) => (m === "mic" ? "idle" : m));
-    } catch {
-      // no-op
-    }
+    } catch {}
   }, [clearCanvas]);
 
   // ----- FILE PLAYBACK CONTROL -----
   const startFilePlayback = useCallback(
     async (file: File) => {
-      // Ensure mic is off (and canvas cleared)
       await stopMic();
 
       try {
@@ -203,10 +200,7 @@ export default function AudioVisualizer() {
         analyser.smoothingTimeConstant = 0.8;
         analyserRef.current = analyser;
 
-        // Decode file to an AudioBuffer
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-        // BufferSource -> Analyser -> Destination
         const src = audioCtx.createBufferSource();
         src.buffer = audioBuffer;
         src.connect(analyser);
@@ -214,21 +208,20 @@ export default function AudioVisualizer() {
 
         fileSourceRef.current = src;
 
-        // Prepare buffers for visualization
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        // ✅ Typed buffer again
+        const buffer = new ArrayBuffer(analyser.frequencyBinCount);
+        const dataArray = new Uint8Array(buffer);
         dataArrayRef.current = dataArray;
 
         fitCanvas();
         clearCanvas();
         draw();
 
-        // Start playback
         src.start(0);
         setMode("file");
         setIsFilePlaying(true);
         setFileName(file.name);
 
-        // When playback ends, clear state/canvas
         src.onended = async () => {
           stopRenderLoop();
           await teardownContext();
@@ -252,7 +245,6 @@ export default function AudioVisualizer() {
     try {
       stopRenderLoop();
 
-      // Stop buffer source if running
       if (fileSourceRef.current) {
         try {
           fileSourceRef.current.stop(0);
@@ -269,33 +261,26 @@ export default function AudioVisualizer() {
       setIsFilePlaying(false);
       setMode((m) => (m === "file" ? "idle" : m));
       setFileName(null);
-    } catch {
-      // no-op
-    }
+    } catch {}
   }, [clearCanvas]);
 
-  // Auto-start mic on mount; clean up everything on unmount
   useEffect(() => {
     startMic();
     return () => {
       stopRenderLoop();
-      // stop both sources gracefully
       stopFilePlayback();
       stopMic();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle file input change
   const onUpload = async (ev: React.ChangeEvent<HTMLInputElement>) => {
     const f = ev.target.files?.[0];
     if (!f) return;
     await startFilePlayback(f);
-    // allow selecting the same file again later
     ev.target.value = "";
   };
 
-  // UI helpers
   const micIndicator =
     mode === "mic" && isMicOn
       ? "bg-emerald-400"
@@ -321,7 +306,6 @@ export default function AudioVisualizer() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Mic Toggle / Switch */}
           {mode === "mic" ? (
             <button
               onClick={stopMic}
@@ -338,7 +322,6 @@ export default function AudioVisualizer() {
             </button>
           )}
 
-          {/* Upload Audio */}
           <label
             htmlFor="audioUpload"
             className="cursor-pointer px-4 py-2 rounded-xl text-sm font-medium transition bg-sky-600 hover:bg-sky-500"
@@ -353,7 +336,6 @@ export default function AudioVisualizer() {
             onChange={onUpload}
           />
 
-          {/* Stop File button (only when file is active) */}
           {mode === "file" && isFilePlaying && (
             <button
               onClick={stopFilePlayback}
